@@ -13,6 +13,7 @@ class VentaController extends Controller
         $ventas = DB::table('ventas')
         ->join('cliente','cliente.id_cliente','=','ventas.id_cliente')
         ->join('inventario','inventario.id_inventario','=','ventas.id_inventario')
+        ->where('status_ventas', '<>' , '1')
         ->get();       
         $data['ventas']  = $ventas;        
         return view('Ventas.index', $data);
@@ -58,6 +59,7 @@ class VentaController extends Controller
                    'precio_v' => $precio,
                    'fecha_compra' => $compra,
                    'fecha_creacion' => $fechaActual,
+                   'status_ventas' => 0,
         );
 
         /** Se crea la venta */
@@ -89,9 +91,22 @@ class VentaController extends Controller
        
         $id_ventas = $request->input('id_ventas');
 
+        $venta = DB::table('ventas')
+        ->where('id_ventas' , '=' ,  $id_ventas)
+        ->first();
+
+        //Consultamos la tabla ventas para traer el id
+        $inventario = DB::table('inventario')
+        ->where('id_inventario' , '=' , $venta->id_inventario )
+        ->first();
+
+        $update_inv = DB::table('inventario')
+        ->where('id_inventario' , '=' , $inventario->id_inventario )
+        ->update(['disponible' => ($venta->cantidad_c + $inventario->disponible)]);
+        
         DB::table('ventas')
         ->where('id_ventas','=',$id_ventas)
-        ->delete();
+        ->update(['status_ventas' => 1]);
 
         return redirect()->route('ventas')->with('success', 'Venta eliminada con éxito'); 
     }
